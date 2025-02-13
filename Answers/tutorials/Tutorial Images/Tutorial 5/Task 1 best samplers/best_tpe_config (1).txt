@@ -1,0 +1,1 @@
+{'num_layers': 2, 'num_heads': 2, 'hidden_size': 384, 'intermediate_size': 1024, 'linear_layer_choices': <class 'chop.nn.modules.identity.Identity'>}

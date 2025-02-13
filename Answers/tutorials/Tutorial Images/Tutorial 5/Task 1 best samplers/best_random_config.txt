@@ -1,0 +1,1 @@
+{'num_layers': 8, 'num_heads': 2, 'hidden_size': 512, 'intermediate_size': 1536, 'linear_layer_choices': <class 'torch.nn.modules.linear.Linear'>}
