@@ -6,7 +6,7 @@
 
 > Task: Delete the call to 'replace\_all\_uses\_with' to verify that FX will report a RuntimeError
 
-**Why use** `**replace_all_uses_with(node.args[0])**`**?**
+**Why use** `replace_all_uses_with(node.args[0])`**?**
 
 * **Ensures all nodes that depended on dropout still function**.
 * If not used, those nodes will try to access a now-deleted dropout node.
@@ -23,8 +23,11 @@ If you **remove** `replace_all_uses_with(node.args[0])`, the dropout node is del
 
 > **Task 2:** Remove the \`attention\_mask\` and \`labels\` arguments from the \`hf\_input\_names\` list and re-run the following cell. Use \`mg.draw()\` to visualize the graph in each case. Can you see any changes in the graph topology? Can you explain why this happens?
 
+**Difference in the graph:** The difference in the graph is that now the nodes related to masking perations have dissapeared, as well as the loss computation node is removed. the final graoh becomes simpler, showing only forward comptations without loss.
+
 - `labels` is used in training to compute the EntropyLoss at the final layer. When removing it, the cross-entropy calculation is omitted meaning the graph will now only output logits. there Is a removal of the ground truth label module.
 - `attention_mask` is used to ignore padding tokens during attention compitations. Without it, all tokens (including padding) are considered equal, leading to incorrect attention weighting and worse performance. Basically, it is used to indicate which tokens are padding (0) and which are actual words (1). Removing it, the model will treat all tokens equally, including the padding tokens, which can intoduce noise in the computations. When no mask is specified, more infromation from the model is used as an input to the masking process.
+
 
 <table>
   <tr>
@@ -32,20 +35,20 @@ If you **remove** `replace_all_uses_with(node.args[0])`, the dropout node is del
     <th>Remove Last Layer</th>
   </tr>
   <tr>
-    <td><img src="Tutorial Images/Tutorial 2/difference_in_graphs/with_last_layer.png" width="300"></td>
-    <td><img src="Tutorial Images/Tutorial 2/difference_in_graphs/remove_last_layer.png" width="300"></td>
+    <td><img src="Tutorial Images/Tutorial 2/difference_in_graphs/with_last_layer.png" width="500"></td>
+    <td><img src="Tutorial Images/Tutorial 2/difference_in_graphs/remove_last_layer.png" width="500"></td>
   </tr>
   <tr>
     <th>With Attention</th>
     <th>Remove Attention</th>
   </tr>
   <tr>
-    <td><img src="Tutorial Images/Tutorial 2/difference_in_graphs/with_attention.png" width="300"></td>
-    <td><img src="Tutorial Images/Tutorial 2/difference_in_graphs/Remove_attention.png" width="300"></td>
+    <td><img src="Tutorial Images/Tutorial 2/difference_in_graphs/with_attention.png" width="500"></td>
+    <td><img src="Tutorial Images/Tutorial 2/difference_in_graphs/Remove_attention.png" width="500"></td>
   </tr>
 </table>
 
-**Difference in the graph:** The difference in the graph is that now the nodes related to masking perations have dissapeared, as well as the loss computation node is removed. the final graoh becomes simpler, showing only forward comptations without loss.
+
 
 ## Lab 1: Model Compression (Quantization and Pruning)
 
@@ -130,7 +133,7 @@ If the layer has **equal input and output features**, it **randomly selects** (v
 
 ![alt text](Tutorial%20Images/Tutorial%205/Task%201%20best%20samplers/SamplerComparison.png)
 
-Optuna's Sampler chooses between nn.Linear or Identity for each layer using TPE, Gridsampler or Random. Sampling between nn.Linear or Identity is useful to reduce model complexity, simulate sparse architectures, parameter search for optimal depth, and reducing overfitting.
+Optuna's Sampler chooses between nn.Linear or Identity for each layer using TPE, Gridsampler or Random. Sampling between nn.Linear or Identity is useful to reduce model complexity, simulate sparse architectures, parameter search for optimal depth, and reducing overfitting. The figures above were completed by searching for parameters using Optuna, and then completing 1 epoch of training before evaluating the model to see its accuracy. The value of 1 epoch was selected as it was found that more than 1 epoch of training overfit the data, decreasing the model's accuracy as shown in the figure below in the Extension section.
 
 **Results:**
 
@@ -153,27 +156,25 @@ Sampler type:
   * Samples parameters randomly without learning from previous trials.
   * There is no refinement based on past accuacy results.
 
-Once the best model with TPESampler was found, more training epochs were given to the model to see if accuracy can be increased further. As shown in the graph below, it was found that the accuracy decreased, highly due to overfitting when epochs were further increased.
 
-The figures above were completed by searching for parameters using Optuna, and then completing 1 epoch of training before evaluating the model to see its accuracy. The value of 1 epoch was selected as It was found that more than 1 epoch of training overfit the data, decreasing the model's accuracy as shown In the figure below.
+
+**Extension:** Once the best model with TPESampler was found, more training epochs were given to the model to see if accuracy can be increased further. As shown in the graph below, it was found that the accuracy decreased, highly due to overfitting when epochs were further increased. 
+
+
 
 ![alt text](Tutorial%20Images/Tutorial%205/TestingMoreEpochs.png)
 
-Additionally, to see the changes between each epoch, the following plot was made, showing clear overfitting even after the first iteration.
+Additionally, to see the changes between each epoch, the following plot was made, showing clear overfitting even after 10% of a whole training epoch was evaluated. 
 
 ![alt text](Tutorial%20Images/Tutorial%205/SmallEpochValidationTest.png)
 
-To further investigate if overfitting was occuring with more epochs, a plot of the loss function at each step of training was competed. Even after 50% of 1 epoch, the loss started increasing again, demonstrating that the accuracy values would decrease in values, proving overfitting occured.
+To further investigate if overfitting was occuring with more epochs, a plot of the **loss function** at each step of training was competed. Even after 50% of 1 epoch, the loss started increasing again, demonstrating that the accuracy values would decrease in values, proving overfitting occured.
 
 ![alt text](Tutorial%20Images/Tutorial%205/TrainingLoss.png)
 
 ### Task 2
 
-Once the model is constructed and trained for some iterations, call the CompressionPipeline to qunatize and pune the model, the continue training for a few more epochs. Use the sampler tat yeods best results in Task 1 to run the compression aware seach. The obectve function should retun gthe final accuracy fo the mdoe after compression. consider also th case wehre final training si performed after qunatixation. 
 
-Get the best model from task 1, see how training affects it. 
-
-Compression-aware search without post-compression training and compression aware with post compression training. 
 
 1. In Tutorial 5, NAS is used to find an optimal configuration of hyperparameters, then we use the CompressionPipeline in Mase to quantize and prune the model after search is finished. However, the final compressed model may not be optimal, since different model architectures may have different sensitivities to quantization and pruning. Ideally, we want to run a compression-aware search flow, where the quantization and pruning is considered in each trial.
    1. In the objective function, after the model is constructed and trained for some iterations, call the CompressionPipeline to quantize and prune the model, then continue training for a few more epochs. Use the sampler that yielded the best results in Task 1 to run the compression-aware search. The objective function should return the final accuracy of the model after compression. Consider also the case where final training is performed after quantization/pruning.
@@ -187,7 +188,7 @@ Before this test was completed, no more training epochs were added to the data, 
 
 Defining a search space with linear\_layer\_choices as well as `width_choices` and `fractional_width_choices`. 
 
-#### Task 1
+### Task 1
 
 1. In Tutorial 6, all layers allocated to IntegerLinear are allocated the same width and fractional width. This is suboptimal, as different layers may have different sensitivities to quantization.
    1. Modify the code to allow different layers to have widths in the range \[8, 16, 32\] and fractional widths in the range \[2, 4, 8\]. Expose this choice as an additional hyperparameter for the Optuna sampler.
@@ -197,13 +198,13 @@ Defining a search space with linear\_layer\_choices as well as `width_choices` a
 
 As shown, using TPE search, the accuracy increased significantly after the 2nd trial. Due to no further increase after 10 trials, the test was stopped.
 
-#### Task 2
+### Task 2
 
 1. In Section 1 of Tutorial 6, when defining the search space, a number of layers are imported, however only LinearInteger and the full precision nn.Linear are selected.
    1. Now, extend the search to consider all supported precisions for the Linear layer in Mase, including Minifloat, BlockFP, BlockLog, Binary, etc. This may also require changing the model constructor so the required arguments are passed when instantiating each layer.
    2. Run the search again, and plot a figure that has the number of trials on the x axis, and the maximum achieved accuracy up to that point on the y axis. Plot one curve for each precision to compare their performance.
 
-During this test, the model was able to replace the original nn.Linear layers using `trial.suggest_categorical` to one of the other precision types per run.
+During this test, the model was able to **replace the original nn.Linear layers** using `trial.suggest_categorical` to one of the other precision types per run.
 
 The **figure on the Left** represent the overall search where each line represents each precision.
 
@@ -229,7 +230,9 @@ The **figure on the right** represents a zoomed In version of the figure on the 
 
 ---
 
-#### Mixed Precision tested all at once:
+
+### Extensions: 
+#### Extension 1: Mixed Precision tested all at once:
 
 Additionally, another test was conducted where all the parameters were Included In the same search space, so nn.Linear could be replaced by any precision type. This was done to get a clearer understanding on the overall structure of the model when given full access to the data.
 
@@ -248,7 +251,7 @@ The best-performing model used the following counts of each precision type, achi
 | **LinearBlockLog**             | 1               |
 | **LinearMinifloatDenorm**      | 1               |
 
-#### Implementing a Cost function:
+#### Extension 2: Implementing a Cost function:
 
 Finally, investigation into the behaviour of the search with a **cost function was investigated**. This was done using function from mase named `calculate_avg_bits_mg_analysis_pass` which finds the average bit width of the weights and data In each model used to find the best accuracy. A composite metric (accuracy - lambda x average bits) was used to control the search. This was done using only LinearInteger as It provides a good balance between high precision and
 
