@@ -13,7 +13,7 @@
 
 If you **remove** `replace_all_uses_with(node.args[0])`, the dropout node is deleted **without redirecting its outputs**. This leaves dangling references in the graph.
 
-![alt text](Tutorial Images/Tutorial 1/Task1_removefunction.png)
+![alt text](Tutorial%20Images/Tutorial%201/Task1_removefunction.png)
 
 ### Tutorial 2:
 
